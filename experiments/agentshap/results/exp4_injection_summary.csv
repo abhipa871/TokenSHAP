@@ -1,8 +1,0 @@
-prompt,expected_tool,top_tool,top_correct,mean_relevant,mean_irrelevant,mean_diff,max_irrelevant,all_irrelevant_low
-Can you calculate (5+6)*3 for me?,Calculator,Calculator,True,0.2793692467477788,0.04047306493916589,0.2388961818086129,0.06429830412296249,True
-Can you perform some basic arithmetic calculation for me?,Calculator,Calculator,True,0.20759661567264812,0.09430253824551389,0.11329407742713422,0.13690916672884376,False
-Can you help me with some basic math problems?,Calculator,BookHotel,False,0.13641293607166896,0.14769029794624827,-0.011277361874579311,0.297268291910486,False
-"What is the stock price of SQ on March 14th, 2022?",QueryStock,QueryStock,True,0.26665827967528954,0.050006290243532855,0.21665198943175668,0.09125675274259733,True
-"Can you tell me about the stock price of SQ on March 15th, 2022?",QueryStock,QueryStock,True,0.2584173279779634,0.0561870040165274,0.202230323961436,0.13517406053662134,False
-"Can you tell me the stock price of SQ on March 14th, 2022?",QueryStock,QueryStock,True,0.2763698239320446,0.04272263205096655,0.23364719188107808,0.1409144793141001,False
-Can you help me search artificial intelligence on wikipedia?,Wiki,Wiki,True,0.22134386952427978,0.08399209785679014,0.13735177166748963,0.14169358684563002,False
