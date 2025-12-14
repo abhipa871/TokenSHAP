@@ -1,0 +1,28 @@
+prompt,expected_tool,run,shap_Calculator,shap_QueryStock,shap_Wiki
+Can you calculate (5+6)*3 for me?,Calculator,1,0.8136482286500663,0.1863517713499338,0.0
+Can you calculate (5+6)*3 for me?,Calculator,2,0.7394250057898651,0.26057499421013486,0.0
+Can you calculate (5+6)*3 for me?,Calculator,3,0.9791175077776602,0.020882492222339868,0.0
+Can you help me with some basic math problems?,Calculator,1,0.9894178238633639,0.010582176136636106,0.0
+Can you help me with some basic math problems?,Calculator,2,0.7138064645287139,0.0,0.2861935354712862
+Can you help me with some basic math problems?,Calculator,3,0.6540994172337328,0.34590058276626723,0.0
+Can you perform some basic arithmetic calculation for me?,Calculator,1,0.6599524185951389,0.0,0.3400475814048611
+Can you perform some basic arithmetic calculation for me?,Calculator,2,1.0,0.0,0.0
+Can you perform some basic arithmetic calculation for me?,Calculator,3,0.7752841625483541,0.22471583745164592,0.0
+"Can you tell me about the stock price of SQ on March 15th, 2022?",QueryStock,1,0.24589510410773768,0.7541048958922624,0.0
+"Can you tell me about the stock price of SQ on March 15th, 2022?",QueryStock,2,0.0,0.8119393579071197,0.18806064209288037
+"Can you tell me about the stock price of SQ on March 15th, 2022?",QueryStock,3,0.0,0.7565565404594536,0.2434434595405464
+"Can you please tell me the stock price of SQ on March 14th, 2022?",QueryStock,1,0.19672678875146862,0.8032732112485313,0.0
+"Can you please tell me the stock price of SQ on March 14th, 2022?",QueryStock,2,0.0,0.946180971765462,0.053819028234538
+"Can you please tell me the stock price of SQ on March 14th, 2022?",QueryStock,3,0.0,0.7643713711732022,0.2356286288267978
+"What is the stock price of SQ on March 14th, 2022?",QueryStock,1,0.0,0.7345455796456495,0.2654544203543505
+"What is the stock price of SQ on March 14th, 2022?",QueryStock,2,0.12980716061248787,0.8701928393875121,0.0
+"What is the stock price of SQ on March 14th, 2022?",QueryStock,3,0.0,0.7455261870801311,0.2544738129198689
+"Can you tell me the stock price of SQ on March 14th, 2022?",QueryStock,1,0.2145100359288308,0.7854899640711692,0.0
+"Can you tell me the stock price of SQ on March 14th, 2022?",QueryStock,2,0.20803142527990176,0.7919685747200982,0.0
+"Can you tell me the stock price of SQ on March 14th, 2022?",QueryStock,3,0.16192588218767248,0.8380741178123275,0.0
+"Can you tell me the stock price of SQ on March 14, 2022?",QueryStock,1,0.0,0.7570253212737554,0.24297467872624456
+"Can you tell me the stock price of SQ on March 14, 2022?",QueryStock,2,0.0,0.968071225937186,0.031928774062814004
+"Can you tell me the stock price of SQ on March 14, 2022?",QueryStock,3,0.0,0.7812832594766796,0.21871674052332038
+Can you help me search artificial intelligence on wikipedia?,Wiki,1,0.0,0.3102028313480935,0.6897971686519064
+Can you help me search artificial intelligence on wikipedia?,Wiki,2,0.2466317305637753,0.0,0.7533682694362247
+Can you help me search artificial intelligence on wikipedia?,Wiki,3,0.0,0.24416254468038776,0.7558374553196122

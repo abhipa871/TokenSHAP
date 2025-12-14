@@ -114,11 +114,11 @@ AgentSHAP is an **explainability framework for AI agents**. It answers the quest
 
 ### Example Usage
 ```python
-from token_shap import AgentSHAP, OpenAIModel, create_function_tool, TfidfTextVectorizer
+from token_shap import AgentSHAP, OpenAIModel, OpenAIEmbeddings, create_function_tool
 
-# Create model
+# Create model and vectorizer (embeddings for semantic similarity)
 model = OpenAIModel(model_name="gpt-4o-mini", api_key="...")
-vectorizer = TfidfTextVectorizer()
+vectorizer = OpenAIEmbeddings(api_key="...", model="text-embedding-3-large")
 
 # Define tools with bundled executors
 weather_tool = create_function_tool(
