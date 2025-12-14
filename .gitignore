@@ -7,3 +7,4 @@
 __pycache__/
 notebooks/dynamic_sam2_results/
 experiments/.env
+experiments/DAMO-ConvAI

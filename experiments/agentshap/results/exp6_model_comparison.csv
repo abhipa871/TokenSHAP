@@ -1,0 +1,13 @@
+model,prompt,expected_tool,top_tool,top_correct,time_seconds,shap_Calculator,shap_QueryStock,shap_Wiki
+GPT-4o-mini,Can you calculate (5+6)*3 for me?,Calculator,Calculator,True,14.522948026657104,0.7940645637008007,0.0,0.20593543629919928
+GPT-4o-mini,"What is the stock price of SQ on March 14th, 2022?",QueryStock,QueryStock,True,22.02370595932007,0.21257186156696925,0.7874281384330307,0.0
+GPT-4o-mini,Can you help me search artificial intelligence on ,Wiki,Wiki,True,27.78654909133911,0.0,0.043921769967104465,0.9560782300328955
+GPT-4o,Can you calculate (5+6)*3 for me?,Calculator,Calculator,True,12.118283748626709,0.7806259880320431,0.0,0.2193740119679569
+GPT-4o,"What is the stock price of SQ on March 14th, 2022?",QueryStock,QueryStock,True,10.41225004196167,0.0,0.771518506377937,0.22848149362206308
+GPT-4o,Can you help me search artificial intelligence on ,Wiki,Wiki,True,18.426899194717407,0.15297477489174455,0.0,0.8470252251082555
+o4-mini,Can you calculate (5+6)*3 for me?,Calculator,Wiki,False,2.9026119709014893,0.26032047941562536,0.0,0.7396795205843746
+o4-mini,"What is the stock price of SQ on March 14th, 2022?",QueryStock,Calculator,False,3.4271440505981445,0.3333333333333333,0.3333333333333333,0.3333333333333333
+o4-mini,Can you help me search artificial intelligence on ,Wiki,QueryStock,False,3.460094928741455,0.0,0.8398725969537653,0.16012740304623474
+o3,Can you calculate (5+6)*3 for me?,Calculator,Calculator,True,3.4737560749053955,0.3333333333333333,0.3333333333333333,0.3333333333333333
+o3,"What is the stock price of SQ on March 14th, 2022?",QueryStock,Calculator,False,10.066699028015137,0.3333333333333333,0.3333333333333333,0.3333333333333333
+o3,Can you help me search artificial intelligence on ,Wiki,QueryStock,False,3.518761157989502,0.0,0.7842279753676535,0.2157720246323465

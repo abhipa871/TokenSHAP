@@ -1,0 +1,8 @@
+domain,prompt,expected_tool,top_tool,top_correct,expected_tool_shap,expected_tool_rank,top_shap
+Math,Can you calculate (5+6)*3 for me?,Calculator,Calculator,True,0.6738877663150991,1,0.6738877663150991
+Math,Can you perform some basic arithmetic calculation for me?,Calculator,Calculator,True,0.670338725744076,1,0.670338725744076
+Math,Can you help me with some basic math problems?,Calculator,AddReminder,False,0.0,6,0.27378030176255064
+Finance,"What is the stock price of SQ on March 14th, 2022?",QueryStock,QueryStock,True,0.46366366610129384,1,0.46366366610129384
+Finance,"Can you tell me about the stock price of SQ on March 15th, 2022?",QueryStock,QueryStock,True,0.590621713573171,1,0.590621713573171
+Finance,"Can you tell me the stock price of SQ on March 14th, 2022?",QueryStock,QueryStock,True,0.5918976963674398,1,0.5918976963674398
+Knowledge,Can you help me search artificial intelligence on wikipedia?,Wiki,Wiki,True,0.5714891998684681,1,0.5714891998684681

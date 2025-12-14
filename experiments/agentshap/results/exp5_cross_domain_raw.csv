@@ -1,0 +1,43 @@
+domain,prompt,tool,shap_value,is_expected
+Math,Can you calculate (5+6)*3 for me?,Calculator,0.6738877663150991,True
+Math,Can you calculate (5+6)*3 for me?,QueryStock,0.0,False
+Math,Can you calculate (5+6)*3 for me?,Wiki,0.15766274252011434,False
+Math,Can you calculate (5+6)*3 for me?,AddAlarm,0.03028046624781361,False
+Math,Can you calculate (5+6)*3 for me?,AddReminder,0.10438635441400433,False
+Math,Can you calculate (5+6)*3 for me?,Translate,0.03378267050296872,False
+Math,Can you perform some basic arithmetic calculation ,Calculator,0.670338725744076,True
+Math,Can you perform some basic arithmetic calculation ,QueryStock,0.05401619921875261,False
+Math,Can you perform some basic arithmetic calculation ,Wiki,0.0014464639412216102,False
+Math,Can you perform some basic arithmetic calculation ,AddAlarm,0.14888770085411718,False
+Math,Can you perform some basic arithmetic calculation ,AddReminder,0.1253109102418326,False
+Math,Can you perform some basic arithmetic calculation ,Translate,0.0,False
+Math,Can you help me with some basic math problems?,Calculator,0.0,True
+Math,Can you help me with some basic math problems?,QueryStock,0.16750673688194895,False
+Math,Can you help me with some basic math problems?,Wiki,0.15193174008270427,False
+Math,Can you help me with some basic math problems?,AddAlarm,0.2513591511058226,False
+Math,Can you help me with some basic math problems?,AddReminder,0.27378030176255064,False
+Math,Can you help me with some basic math problems?,Translate,0.15542207016697354,False
+Finance,"What is the stock price of SQ on March 14th, 2022?",Calculator,0.15380724185204242,False
+Finance,"What is the stock price of SQ on March 14th, 2022?",QueryStock,0.46366366610129384,True
+Finance,"What is the stock price of SQ on March 14th, 2022?",Wiki,0.0,False
+Finance,"What is the stock price of SQ on March 14th, 2022?",AddAlarm,0.1155190177795135,False
+Finance,"What is the stock price of SQ on March 14th, 2022?",AddReminder,0.13995097125820785,False
+Finance,"What is the stock price of SQ on March 14th, 2022?",Translate,0.1270591030089424,False
+Finance,Can you tell me about the stock price of SQ on Mar,Calculator,0.0,False
+Finance,Can you tell me about the stock price of SQ on Mar,QueryStock,0.590621713573171,True
+Finance,Can you tell me about the stock price of SQ on Mar,Wiki,0.11583098856999449,False
+Finance,Can you tell me about the stock price of SQ on Mar,AddAlarm,0.0537837075314771,False
+Finance,Can you tell me about the stock price of SQ on Mar,AddReminder,0.11031157735418787,False
+Finance,Can you tell me about the stock price of SQ on Mar,Translate,0.12945201297116954,False
+Finance,Can you tell me the stock price of SQ on March 14t,Calculator,0.10032273845857743,False
+Finance,Can you tell me the stock price of SQ on March 14t,QueryStock,0.5918976963674398,True
+Finance,Can you tell me the stock price of SQ on March 14t,Wiki,0.0,False
+Finance,Can you tell me the stock price of SQ on March 14t,AddAlarm,0.08572844766863659,False
+Finance,Can you tell me the stock price of SQ on March 14t,AddReminder,0.07228811640963195,False
+Finance,Can you tell me the stock price of SQ on March 14t,Translate,0.14976300109571425,False
+Knowledge,Can you help me search artificial intelligence on ,Calculator,0.0907217898850232,False
+Knowledge,Can you help me search artificial intelligence on ,QueryStock,0.0,False
+Knowledge,Can you help me search artificial intelligence on ,Wiki,0.5714891998684681,True
+Knowledge,Can you help me search artificial intelligence on ,AddAlarm,0.07042077110491858,False
+Knowledge,Can you help me search artificial intelligence on ,AddReminder,0.18156022116824938,False
+Knowledge,Can you help me search artificial intelligence on ,Translate,0.08580801797334069,False
