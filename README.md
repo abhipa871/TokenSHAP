@@ -184,7 +184,7 @@ pip install -r requirements.txt
 
 ## 📄 Citation
 
-If you use TokenSHAP or PixelSHAP in your research, please cite:
+If you use TokenSHAP, PixelSHAP, or AgentSHAP in your research, please cite:
 
 ```bibtex
 @article{goldshmidt2024tokenshap,
@@ -198,6 +198,13 @@ If you use TokenSHAP or PixelSHAP in your research, please cite:
   title={Attention, Please! PixelSHAP Reveals What Vision-Language Models Actually Focus On},
   author={Goldshmidt, Roni},
   journal={arXiv preprint arXiv:2503.06670},
+  year={2025}
+}
+
+@article{horovicz2025agentshap,
+  title={AgentSHAP: Interpreting LLM Agent Tool Importance with Monte Carlo Shapley Value Estimation},
+  author={Horovicz, Miriam},
+  journal={arXiv preprint arXiv:2512.12597},
   year={2025}
 }
 ```
