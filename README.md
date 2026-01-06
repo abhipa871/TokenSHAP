@@ -150,7 +150,7 @@ VideoSHAP extends the framework to video content, tracking objects across frames
 
 <p align="center">
   <b>Birthday Party Analysis</b><br/>
-  <img src="images/birthday.gif" alt="Birthday party video analysis" width="300"/>
+  <img src="images/birthday.gif" alt="Birthday party video analysis" width="500"/>
 </p>
 
 <p align="center">
