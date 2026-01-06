@@ -61,13 +61,13 @@ token_shap.plot_colored_text()
 ### PixelSHAP Example
 ```python
 from token_shap import PixelSHAP
-from token_shap.image_utils import YOLODetectionModel, Sam2Adapter
+from token_shap.image_utils import YOLODetectionModel, Sam3Adapter
 from token_shap.base import OpenAIModel, TfidfTextVectorizer
 
 # Initialize components
 model = OpenAIModel(model_name="gpt-4-vision", api_key="YOUR_KEY")
 detector = YOLODetectionModel(model_path="yolov8x.pt")
-segmenter = Sam2Adapter(sam2_model_id="facebook/sam2.1-hiera-large")
+segmenter = Sam3Adapter(sam3_model_id="facebook/sam3")
 vectorizer = TfidfTextVectorizer()
 
 # Create PixelSHAP instance

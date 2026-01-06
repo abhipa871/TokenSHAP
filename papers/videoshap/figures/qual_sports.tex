@@ -1,0 +1,78 @@
+\documentclass[border=5pt]{standalone}
+\usepackage{tikz}
+\usepackage{xcolor}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{positioning}
+
+\begin{document}
+\begin{tikzpicture}[
+    frame/.style={draw=gray, thick, minimum width=1.6cm, minimum height=1.1cm, fill=gray!20},
+]
+
+% Title
+\node[font=\bfseries] at (3.3, 4) {Sports Scene: Goal Attribution};
+
+% Query
+\node[font=\small\itshape] at (3.3, 3.4) {Query: "Who scored the goal?"};
+
+% Frames with player highlights
+\node[frame, fill=gray!30] (f1) at (0.5, 2.2) {};
+\node[frame, fill=gray!30] (f2) at (2.3, 2.2) {};
+\node[frame, fill=gray!30] (f3) at (4.1, 2.2) {};
+\node[frame, fill=gray!30] (f4) at (5.9, 2.2) {};
+
+\node[font=\scriptsize] at (0.5, 1.4) {Approach};
+\node[font=\scriptsize] at (2.3, 1.4) {Shot};
+\node[font=\scriptsize] at (4.1, 1.4) {Goal};
+\node[font=\scriptsize] at (5.9, 1.4) {Celebration};
+
+% Red circles for scorer
+\draw[red, very thick] (0.5, 2.2) circle (0.25cm);
+\draw[red, very thick] (2.3, 2.2) circle (0.25cm);
+\draw[red, very thick] (4.1, 2.2) circle (0.25cm);
+\draw[red, very thick] (5.9, 2.2) circle (0.25cm);
+
+% Yellow circles for assister
+\draw[yellow!80!black, thick] (0.2, 2.0) circle (0.15cm);
+\draw[yellow!80!black, thick] (2.0, 2.0) circle (0.15cm);
+
+% Temporal profile
+\node[font=\scriptsize\bfseries] at (3.3, 0.5) {Temporal Importance Profile};
+
+\begin{scope}[shift={(0.3,-1.2)}]
+\begin{axis}[
+    width=6cm,
+    height=2.5cm,
+    xlabel={\scriptsize Frame},
+    ylabel={\scriptsize Importance},
+    xmin=0, xmax=35,
+    ymin=0, ymax=0.6,
+    xtick={0,10,20,30},
+    ytick={0,0.3,0.6},
+    axis lines=left,
+    clip=false,
+]
+\addplot[red, thick, mark=none] coordinates {
+    (0, 0.15)
+    (5, 0.18)
+    (10, 0.25)
+    (15, 0.35)
+    (20, 0.51)
+    (25, 0.48)
+    (30, 0.30)
+    (35, 0.22)
+};
+\node[font=\scriptsize, red] at (axis cs:22, 0.55) {Goal};
+\draw[gray, dashed] (axis cs:20, 0) -- (axis cs:20, 0.51);
+\end{axis}
+\end{scope}
+
+% Legend
+\node[font=\scriptsize] at (3.3, -2.3) {
+    \tikz{\draw[red, very thick] (0,0) circle (0.12cm);} Scorer ($\phi$=0.51) \quad
+    \tikz{\draw[yellow!80!black, thick] (0,0) circle (0.1cm);} Assister ($\phi$=0.23)
+};
+
+\end{tikzpicture}
+\end{document}

@@ -1035,3 +1035,495 @@ class PixelSHAPVisualizer:
         plt.show()
         
         return transparent_background  # Return the generated image for further processing if needed
+
+import imageio.v2 as imageio
+from PIL import Image, ImageDraw, ImageFont
+import textwrap
+
+
+def create_side_by_side_visualization(
+    original_video_path: str,
+    visualization_video_path: str,
+    output_path: str,
+    prompt: str,
+    model_output: str,
+    fps: int = 8,
+    min_importance: float = 0.0,
+    max_importance: float = 1.0,
+    original_frames: List[np.ndarray] = None,
+    visualization_frames: List[np.ndarray] = None,
+):
+    """
+    Create a side-by-side video/GIF with original and visualization.
+
+    Layout:
+    ┌─────────────────┬─────────────────┐
+    │  Original Image │  Visualization  │
+    ├─────────────────┼─────────────────┤
+    │ Prompt:         │                 │
+    │ Model Output:   │   [Colorbar]    │
+    └─────────────────┴─────────────────┘
+
+    Args:
+        original_video_path: Path to original video (ignored if original_frames provided)
+        visualization_video_path: Path to visualization video (ignored if visualization_frames provided)
+        output_path: Output path (.gif or .mp4)
+        prompt: Question/prompt text
+        model_output: Model's answer text
+        fps: Output frames per second
+        min_importance: Minimum value for colorbar
+        max_importance: Maximum value for colorbar
+        original_frames: Optional list of original frames (numpy arrays) - use for perfect sync
+        visualization_frames: Optional list of visualization frames (numpy arrays) - use for perfect sync
+
+    Returns:
+        Path to output file
+    """
+    # Use provided frames or read from video files
+    if original_frames is not None:
+        orig_frames_list = [np.array(f) if not isinstance(f, np.ndarray) else f for f in original_frames]
+    else:
+        original_reader = imageio.get_reader(original_video_path)
+        orig_frames_list = list(original_reader)
+        original_reader.close()
+
+    if visualization_frames is not None:
+        viz_frames_list = [np.array(f) if not isinstance(f, np.ndarray) else f for f in visualization_frames]
+    else:
+        viz_reader = imageio.get_reader(visualization_video_path)
+        viz_frames_list = list(viz_reader)
+        viz_reader.close()
+
+    # CRITICAL: Match frame counts by index
+    num_frames = min(len(orig_frames_list), len(viz_frames_list))
+
+    # Get dimensions from first frame
+    h, w = orig_frames_list[0].shape[:2]
+
+    # Layout parameters
+    padding = 16
+    title_height = 28
+    text_area_height = 160  # Increased for more text
+    colorbar_height = 50
+
+    # Total canvas size
+    canvas_width = w * 2 + padding * 3
+    canvas_height = title_height + h + padding + text_area_height
+
+    # Create static elements ONCE (prevents flickering/color changes)
+    colorbar_img = _create_colorbar_image(
+        width=w,
+        height=colorbar_height,
+        min_val=min_importance,
+        max_val=max_importance,
+    )
+
+    text_panel = _create_text_panel(
+        width=w + padding,
+        height=text_area_height,
+        prompt=prompt,
+        model_output=model_output,
+        padding=12,
+    )
+
+    # Pre-render the static canvas template (everything except video frames)
+    template = Image.new("RGB", (canvas_width, canvas_height), (255, 255, 255))
+    template_draw = ImageDraw.Draw(template)
+
+    title_font = load_font(None, 13)
+
+    # Draw titles once on template
+    orig_title = "Original Image"
+    bbox = title_font.getbbox(orig_title)
+    orig_title_x = padding + (w - (bbox[2] - bbox[0])) // 2
+    template_draw.text((orig_title_x, 8), orig_title, fill=(120, 120, 120), font=title_font)
+
+    viz_title = "VideoSHAP Importance Visualization"
+    bbox = title_font.getbbox(viz_title)
+    viz_title_x = padding * 2 + w + (w - (bbox[2] - bbox[0])) // 2
+    template_draw.text((viz_title_x, 8), viz_title, fill=(120, 120, 120), font=title_font)
+
+    # Paste static elements on template
+    content_y = title_height + h + padding // 2
+    template.paste(text_panel, (padding, content_y))
+
+    colorbar_x = padding * 2 + w
+    colorbar_y = content_y + (text_area_height - colorbar_height) // 2
+    template.paste(colorbar_img, (colorbar_x, colorbar_y))
+
+    # Generate frames
+    output_frames = []
+    frame_y = title_height
+
+    for i in range(num_frames):
+        # Copy template for this frame
+        canvas = template.copy()
+
+        # Get synchronized frames (same index = same time)
+        orig_frame = Image.fromarray(orig_frames_list[i]).convert("RGB")
+        viz_frame = Image.fromarray(viz_frames_list[i]).convert("RGB")
+
+        # Resize if needed (should be same size, but just in case)
+        if orig_frame.size != (w, h):
+            orig_frame = orig_frame.resize((w, h), Image.LANCZOS)
+        if viz_frame.size != (w, h):
+            viz_frame = viz_frame.resize((w, h), Image.LANCZOS)
+
+        # Paste video frames
+        canvas.paste(orig_frame, (padding, frame_y))
+        canvas.paste(viz_frame, (padding * 2 + w, frame_y))
+
+        output_frames.append(np.array(canvas))
+
+    # Save output
+    if output_path.endswith('.gif'):
+        # Use higher quality GIF settings
+        imageio.mimsave(
+            output_path,
+            output_frames,
+            fps=fps,
+            loop=0,
+        )
+    else:
+        imageio.mimsave(output_path, output_frames, fps=fps)
+
+    return output_path
+
+
+def _create_colorbar_image(width: int, height: int, min_val: float, max_val: float):
+    """Create a horizontal colorbar image with RdYlGn_r colormap."""
+    bar_height = height - 22  # Space for labels
+
+    # Create gradient using numpy for smooth colors
+    gradient = np.linspace(0, 1, width)
+    gradient = np.tile(gradient, (bar_height, 1))
+
+    # Apply RdYlGn_r colormap
+    cmap = cm.get_cmap('RdYlGn_r')
+    colored = (cmap(gradient)[:, :, :3] * 255).astype(np.uint8)
+
+    # Create PIL image with white background
+    img = Image.new("RGB", (width, height), (255, 255, 255))
+
+    # Paste the gradient
+    gradient_img = Image.fromarray(colored)
+    img.paste(gradient_img, (0, 0))
+
+    # Draw border around colorbar
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([(0, 0), (width - 1, bar_height - 1)], outline=(180, 180, 180), width=1)
+
+    # Add labels
+    font = load_font(None, 11)
+    label_y = bar_height + 4
+
+    labels = [
+        (4, f"{min_val:.2f}", "left"),
+        (width // 2, f"{(min_val + max_val) / 2:.2f}", "center"),
+        (width - 4, f"{max_val:.2f}", "right"),
+    ]
+
+    for x, label, align in labels:
+        bbox = font.getbbox(label)
+        label_width = bbox[2] - bbox[0]
+        if align == "left":
+            draw.text((x, label_y), label, fill=(80, 80, 80), font=font)
+        elif align == "right":
+            draw.text((x - label_width, label_y), label, fill=(80, 80, 80), font=font)
+        else:
+            draw.text((x - label_width // 2, label_y), label, fill=(80, 80, 80), font=font)
+
+    return img
+
+
+def _create_text_panel(width: int, height: int, prompt: str, model_output: str, padding: int = 12):
+    """Create text panel with prompt and model output."""
+    img = Image.new("RGB", (width, height), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+
+    # Fonts
+    bold_font = load_font(None, 12)
+    text_font = load_font(None, 11)
+
+    y = padding
+
+    # Prompt section
+    draw.text((padding, y), "Prompt:", fill=(80, 80, 80), font=bold_font)
+    y += 16
+
+    # Wrap and draw prompt text
+    max_chars = max(30, (width - padding * 2) // 7)
+    wrapped_prompt = textwrap.wrap(prompt, width=max_chars)
+    for line in wrapped_prompt[:2]:
+        draw.text((padding, y), line, fill=(50, 50, 50), font=text_font)
+        y += 14
+
+    y += 10
+
+    # Model Output box - calculate size based on remaining space
+    box_x = padding
+    box_y = y
+    box_width = width - padding * 2
+    box_height = height - y - padding
+
+    # Draw box with subtle styling
+    draw.rectangle(
+        [(box_x, box_y), (box_x + box_width, box_y + box_height)],
+        fill=(248, 249, 250),
+        outline=(200, 200, 205),
+        width=1,
+    )
+
+    # Header
+    draw.text((box_x + 10, box_y + 8), "Model Output:", fill=(80, 80, 80), font=bold_font)
+
+    # Model output text - more lines allowed
+    inner_width = box_width - 20
+    max_chars_output = max(25, inner_width // 7)
+    wrapped_output = textwrap.wrap(model_output, width=max_chars_output)
+
+    text_y = box_y + 26
+    max_lines = (box_height - 36) // 14  # Calculate how many lines fit
+
+    for i, line in enumerate(wrapped_output[:max_lines]):
+        draw.text((box_x + 10, text_y), line, fill=(40, 40, 40), font=text_font)
+        text_y += 14
+
+    # Add ellipsis if text was truncated
+    if len(wrapped_output) > max_lines:
+        draw.text((box_x + 10, text_y - 14), wrapped_output[max_lines - 1].rstrip() + "...", fill=(40, 40, 40), font=text_font)
+
+    return img
+
+
+def mp4_to_gif_with_styled_title(
+    mp4_path,
+    gif_path,
+    title_text,
+    fps=4,
+    banner_height=80,
+    font_size=32,
+    font_path=None,
+    padding=20,
+    answer_text=None,
+    answer_banner_height=None,
+    answer_font_size=None,
+):
+    """
+    Convert MP4 to GIF with Q&A banners (PixelSHAP style).
+
+    Args:
+        mp4_path: Input video path
+        gif_path: Output GIF path
+        title_text: Question/prompt text for top banner
+        fps: Output FPS
+        banner_height: Height of top (question) banner
+        font_size: Font size for question
+        font_path: Custom font path
+        padding: Horizontal padding for text
+        answer_text: Model answer for bottom banner (optional)
+        answer_banner_height: Height of bottom banner (defaults to banner_height * 1.5)
+        answer_font_size: Font size for answer (defaults to font_size * 0.75)
+
+    Returns:
+        Path to output GIF
+    """
+    # Set defaults for answer banner
+    if answer_banner_height is None:
+        answer_banner_height = int(banner_height * 1.5)
+    if answer_font_size is None:
+        answer_font_size = int(font_size * 0.75)
+
+    reader = imageio.get_reader(mp4_path)
+    frames = []
+    first_frame = True
+    cached_top_banner = None
+    cached_bottom_banner = None
+
+    for frame in reader:
+        base = Image.fromarray(frame).convert("RGB")
+        w, h = base.size
+
+        # Create banners only once (identical for all frames - no flickering!)
+        if first_frame:
+            # Top banner for question
+            cached_top_banner = create_banner_with_fitted_text(
+                width=w,
+                height=banner_height,
+                title_text=f"Q: {title_text}",
+                max_font_size=font_size,
+                padding=padding,
+                font_path=font_path
+            )
+
+            # Bottom banner for answer (if provided)
+            if answer_text:
+                cached_bottom_banner = create_banner_with_fitted_text(
+                    width=w,
+                    height=answer_banner_height,
+                    title_text=f"A: {answer_text}",
+                    max_font_size=answer_font_size,
+                    padding=padding,
+                    font_path=font_path,
+                    is_answer=True
+                )
+            first_frame = False
+
+        # Calculate total canvas height
+        total_height = banner_height + h
+        if answer_text:
+            total_height += answer_banner_height
+
+        # Create canvas
+        canvas = Image.new("RGB", (w, total_height), (255, 255, 255))
+
+        # Paste top banner (question)
+        canvas.paste(cached_top_banner, (0, 0))
+
+        # Paste video frame
+        canvas.paste(base, (0, banner_height))
+
+        # Paste bottom banner (answer) if provided
+        if answer_text and cached_bottom_banner:
+            canvas.paste(cached_bottom_banner, (0, banner_height + h))
+
+        frames.append(canvas)
+
+    reader.close()
+
+    # Convert to numpy arrays for imageio
+    frame_arrays = [np.array(f) for f in frames]
+
+    # Save with better quality (using pillow for quantization)
+    imageio.mimsave(gif_path, frame_arrays, fps=fps, loop=0)
+
+    return gif_path
+
+
+def create_banner_with_fitted_text(width, height, title_text, max_font_size, padding, font_path=None, is_answer=False):
+    """
+    Create a banner with text that automatically fits the width.
+    Returns a single banner image to be reused for all frames.
+
+    Args:
+        width: Banner width
+        height: Banner height
+        title_text: Text to display
+        max_font_size: Maximum font size to try
+        padding: Horizontal padding
+        font_path: Custom font path
+        is_answer: If True, style as answer banner (different background)
+    """
+
+    available_width = width - (padding * 2)
+
+    # Find the best font size that fits
+    font_size = max_font_size
+    font = None
+    best_lines = None
+
+    while font_size >= 12:
+        font = load_font(font_path, font_size)
+
+        # Try different wrapping widths to find optimal fit
+        for chars_per_line in range(100, 10, -5):
+            lines = textwrap.wrap(title_text, width=chars_per_line)
+
+            # Check if all lines fit within available width
+            fits = True
+            for line in lines:
+                bbox = font.getbbox(line)
+                line_width = bbox[2] - bbox[0]
+                if line_width > available_width:
+                    fits = False
+                    break
+
+            if fits:
+                best_lines = lines
+                break
+
+        if best_lines:
+            # Check if total height fits
+            line_height = font.getbbox("Ag")[3] - font.getbbox("Ag")[1]
+            total_height = len(best_lines) * line_height + (len(best_lines) - 1) * 8
+
+            if total_height <= height - 16:  # Leave vertical padding
+                break
+
+        font_size -= 2
+        best_lines = None
+
+    if not best_lines:
+        best_lines = [title_text[:60] + "..."]  # Fallback
+        font = load_font(font_path, 16)
+
+    # Create the banner image with different styling for Q vs A
+    banner = Image.new("RGB", (width, height), (250, 250, 252))
+    draw = ImageDraw.Draw(banner)
+
+    # Different gradient for question vs answer
+    if is_answer:
+        # Answer banner: light warm tint
+        for y in range(height):
+            ratio = y / height
+            r = int(252 - ratio * 8)
+            g = int(250 - ratio * 10)
+            b = int(245 - ratio * 12)
+            draw.line([(0, y), (width, y)], fill=(r, g, b))
+        # Top border line (since answer is at bottom)
+        draw.line([(0, 0), (width, 0)], fill=(220, 220, 225), width=1)
+    else:
+        # Question banner: neutral gradient
+        for y in range(height):
+            ratio = y / height
+            gray = int(252 - ratio * 12)
+            draw.line([(0, y), (width, y)], fill=(gray, gray, gray + 2))
+        # Bottom border line
+        draw.line([(0, height - 1), (width, height - 1)], fill=(220, 220, 225), width=1)
+
+    # Calculate text positioning
+    line_height = font.getbbox("Ag")[3] - font.getbbox("Ag")[1]
+    line_spacing = 6
+    total_text_height = len(best_lines) * line_height + (len(best_lines) - 1) * line_spacing
+    y = (height - total_text_height) // 2
+
+    # Draw each line centered
+    for line in best_lines:
+        bbox = font.getbbox(line)
+        line_width = bbox[2] - bbox[0]
+        x = (width - line_width) // 2
+
+        # Light shadow for depth
+        draw.text((x + 1, y + 1), line, fill=(200, 200, 205), font=font)
+        # Main text - dark gray
+        draw.text((x, y), line, fill=(35, 35, 40), font=font)
+
+        y += line_height + line_spacing
+
+    return banner
+
+
+def load_font(font_path, size):
+    """Load font with fallbacks."""
+    if font_path:
+        try:
+            return ImageFont.truetype(font_path, size)
+        except:
+            pass
+    
+    # Try common font paths
+    font_paths = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+        "Arial.ttf",
+    ]
+    
+    for path in font_paths:
+        try:
+            return ImageFont.truetype(path, size)
+        except:
+            continue
+    
+    return ImageFont.load_default()

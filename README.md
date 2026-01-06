@@ -1,20 +1,46 @@
-# TokenSHAP, PixelSHAP & AgentSHAP: Interpreting Large Language, Vision-Language Models and AI Agents
+<p align="center">
+  <img src="images/genai_shap.png" alt="GenAI-SHAP: Unified Explainability Framework" width="600"/>
+</p>
 
-TokenSHAP, PixelSHAP, and AgentSHAP are three complementary model-agnostic interpretability frameworks for large-scale AI systems. All methods are grounded in Monte Carlo Shapley value estimation, enabling detailed attribution of importance to individual parts of the input—whether they are **tokens in text**, **objects in images**, or **tools in AI agents**.
+<h1 align="center">GenAI-SHAP</h1>
+<h3 align="center">Unified Explainability for Generative AI</h3>
+
+<p align="center">
+A framework for interpreting modern AI systems using Monte Carlo Shapley value estimation.<br/>
+Model-agnostic explainability across language models, vision-language models, video understanding, and autonomous agents.
+</p>
+
+---
 
 ## Overview
 
-- **TokenSHAP** explains the output of large language models (LLMs) by computing Shapley values for input tokens. It estimates how much each token contributes to the final model response.
+GenAI-SHAP provides a unified theoretical foundation for explaining generative AI systems. All methods share the same core principle: **Shapley values from cooperative game theory**. By treating input components (tokens, objects, tools, tracked entities) as players in a cooperative game, we rigorously quantify each component's contribution to the model's output.
 
-- **PixelSHAP** extends this idea to vision-language models (VLMs), attributing importance to segmented **visual objects** in an image, showing which objects influenced the textual output.
+| Method | Domain | Input Components | Publication |
+|--------|--------|------------------|-------------|
+| [**TokenSHAP**](#-tokenshap) | Large Language Models | Text tokens | [arXiv:2407.10114](https://arxiv.org/abs/2407.10114) |
+| [**PixelSHAP**](#%EF%B8%8F-pixelshap) | Vision-Language Models | Visual objects | [arXiv:2503.06670](https://arxiv.org/abs/2503.06670) |
+| [**VideoSHAP**](#-videoshap) | Video Understanding | Tracked objects | Coming soon |
+| [**AgentSHAP**](#-agentshap) | LLM Agents | Tools | [arXiv:2512.12597](https://arxiv.org/abs/2512.12597) |
 
-- **AgentSHAP** provides explainability for AI agents, measuring which **tools** the agent relied on to produce its response.
+### Why Shapley Values?
 
-These tools are essential for understanding the decision-making process of LLMs, VLMs, and AI agents, especially in high-stakes applications such as autonomous driving, healthcare, and legal AI.
+Shapley values provide the **unique** attribution method satisfying four axiomatic properties:
+
+- **Efficiency** — Attributions sum to the total value
+- **Symmetry** — Equal contributors receive equal attribution
+- **Null player** — Non-contributors receive zero attribution
+- **Linearity** — Attributions combine predictably across games
+
+These guarantees make Shapley-based explanations theoretically grounded and practically meaningful.
 
 ---
 
 ## 🔍 TokenSHAP
+
+<p align="center">
+  <img src="images/tokenshap_logo.png" alt="TokenSHAP Logo" width="80"/>
+</p>
 
 TokenSHAP provides fine-grained interpretability for language models using Monte Carlo Shapley value estimation over input tokens.
 
@@ -48,14 +74,19 @@ df = token_shap_api.analyze("Why is the sky blue?", sampling_ratio=0.0)
 
 ![Tokens Importance](data/plot.JPG)
 
+See [`notebooks/TokenShap Examples.ipynb`](notebooks/TokenShap%20Examples.ipynb) for complete examples.
+
 ---
 
 ## 🖼️ PixelSHAP
 
+<p align="center">
+  <img src="images/pixelshap_logo.png" alt="PixelSHAP Logo" width="80"/>
+</p>
+
 PixelSHAP is an object-level interpretability framework for **text-generating vision-language models**. It attributes Shapley values to visual objects based on their contribution to the model's response.
 
 ![PixelSHAP Examples](data/pixelshap_example.png)
-
 
 ### What Makes PixelSHAP Unique?
 - **Model-agnostic**: Only requires input-output access (no internal model introspection needed)
@@ -96,9 +127,96 @@ pixel_shap.visualize(
 
 ![PixelSHAP Example Output](data/pixelshap_plot.png)
 
+See [`notebooks/PixelSHAP Examples.ipynb`](notebooks/PixelSHAP%20Examples.ipynb) for complete examples.
+
+---
+
+## 🎬 VideoSHAP
+
+<p align="center">
+  <img src="images/videoshap_logo.png" alt="VideoSHAP Logo" width="80"/>
+</p>
+
+VideoSHAP extends the framework to video content, tracking objects across frames and computing importance scores that reflect each object's contribution to the VLM's temporal reasoning.
+
+### Key Features
+- SAM3-based object tracking with text-prompted detection
+- Support for native video models (Gemini) and frame-sequence approaches (GPT-4o)
+- Temporal importance profiles showing how relevance evolves
+- Video output with heatmap overlays
+- Adaptive frame sampling with target FPS control
+
+### Example Results
+
+<p align="center">
+  <b>Birthday Party Analysis</b><br/>
+  <img src="images/birthday.gif" alt="Birthday party video analysis" width="500"/>
+</p>
+
+<p align="center">
+  <b>Cats Interaction</b><br/>
+  <img src="images/cats.gif" alt="Cats video analysis" width="500"/>
+</p>
+
+<table>
+<tr>
+<td align="center"><b>Scene Understanding Q1</b></td>
+<td align="center"><b>Scene Understanding Q2</b></td>
+<td align="center"><b>Scene Understanding Q3</b></td>
+</tr>
+<tr>
+<td><img src="images/alien_q1.gif" alt="Alien scene question 1" width="280"/></td>
+<td><img src="images/alien_q2.gif" alt="Alien scene question 2" width="280"/></td>
+<td><img src="images/alien_q3.gif" alt="Alien scene question 3" width="280"/></td>
+</tr>
+</table>
+
+### Example Usage
+```python
+from token_shap import (
+    VideoSHAP,
+    SAM3VideoSegmentationModel,
+    VideoBlurManipulator,
+    GeminiVideoModel
+)
+from token_shap.base import HuggingFaceEmbeddings
+
+# Initialize tracking and VLM
+tracker = SAM3VideoSegmentationModel(model_name="facebook/sam3", device="cuda")
+vlm = GeminiVideoModel(model_name="gemini-2.0-flash", api_key="...")
+manipulator = VideoBlurManipulator(blur_radius=51)
+embeddings = HuggingFaceEmbeddings()
+
+# Create analyzer
+video_shap = VideoSHAP(
+    model=vlm,
+    segmentation_model=tracker,
+    manipulator=manipulator,
+    vectorizer=embeddings
+)
+
+# Analyze video
+results_df, shapley_values = video_shap.analyze(
+    video_path="video.mp4",
+    prompt="What is happening in this scene?",
+    text_prompts=["person", "car", "object"],
+    target_fps=8,
+    sampling_ratio=0.3
+)
+
+# Generate visualization
+video_shap.visualize(output_path="attributed_video.mp4")
+```
+
+See [`notebooks/VideoSHAP Examples.ipynb`](notebooks/VideoSHAP%20Examples.ipynb) for complete examples.
+
 ---
 
 ## 🤖 AgentSHAP
+
+<p align="center">
+  <img src="images/agentshap_logo.png" alt="AgentSHAP Logo" width="80"/>
+</p>
 
 AgentSHAP is an **explainability framework for AI agents**. It answers the question: *"Which tools did the agent rely on to produce its response?"* by computing Shapley values for each tool in the agent's toolkit.
 
@@ -166,6 +284,8 @@ AgentSHAP explains agent behavior by measuring the marginal contribution of each
 
 **Interpreting results**: Tools with high SHAP values were critical for the response; tools with low values had minimal impact. This helps debug agent behavior, optimize tool selection, and understand agent decision-making.
 
+See [`notebooks/AgentSHAP Examples.ipynb`](notebooks/AgentSHAP%20Examples.ipynb) for complete examples.
+
 ---
 
 ## 🧪 Installation
@@ -178,13 +298,26 @@ cd TokenSHAP
 pip install -r requirements.txt
 ```
 
+### Optional Dependencies
+
+```bash
+# For local LLMs
+pip install transformers accelerate
+
+# For video processing
+pip install imageio[ffmpeg]
+
+# For SAM3 tracking
+pip install sam3
+```
+
 *Note: PyPI installation is currently disabled.*
 
 ---
 
 ## 📄 Citation
 
-If you use TokenSHAP, PixelSHAP, or AgentSHAP in your research, please cite:
+If you use TokenSHAP, PixelSHAP, VideoSHAP, or AgentSHAP in your research, please cite:
 
 ```bibtex
 @article{goldshmidt2024tokenshap,
@@ -198,6 +331,13 @@ If you use TokenSHAP, PixelSHAP, or AgentSHAP in your research, please cite:
   title={Attention, Please! PixelSHAP Reveals What Vision-Language Models Actually Focus On},
   author={Goldshmidt, Roni},
   journal={arXiv preprint arXiv:2503.06670},
+  year={2025}
+}
+
+@article{goldshmidt2025videoshap,
+  title={VideoSHAP: Temporal Object Attribution for Video Understanding},
+  author={Goldshmidt, Roni},
+  journal={arXiv preprint},
   year={2025}
 }
 
@@ -235,15 +375,25 @@ We welcome community contributions! To contribute:
 
 ## 📂 Repository Structure
 
-- `token_shap/` — Core library including:
-  - `token_shap.py` — Token-level attribution for LLMs
-  - `pixel_shap.py` — Object-level attribution for VLMs
-  - `agent_shap.py` — Tool-level attribution for AI agents
-  - `tools.py` — Tool definitions for AgentSHAP
-  - `base.py` — Model abstractions (OpenAI, Ollama, etc.)
-- `notebooks/` — Jupyter notebooks with examples
-- `data/` — Images used in the documentation
+```
+TokenSHAP/
+├── token_shap/
+│   ├── token_shap.py      # Token-level attribution for LLMs
+│   ├── pixel_shap.py      # Object-level attribution for VLMs
+│   ├── video_shap.py      # Temporal object attribution for videos
+│   ├── agent_shap.py      # Tool-level attribution for AI agents
+│   ├── base.py            # Model abstractions (OpenAI, Gemini, Ollama, etc.)
+│   ├── tools.py           # Tool definitions for AgentSHAP
+│   ├── image_utils.py     # Segmentation utilities
+│   ├── video_utils.py     # Video processing utilities
+│   └── visualization.py   # Plotting utilities
+├── notebooks/             # Jupyter notebooks with examples
+├── experiments/           # Research experiments
+├── tests/                 # Test suite
+├── data/                  # Images used in documentation
+└── images/                # Logos and GIFs
+```
 
 ---
 
-By combining TokenSHAP, PixelSHAP, and AgentSHAP, this library offers full-spectrum interpretability for modern AI systems—from language-only prompts to complex multimodal inputs to agentic tool-calling workflows.
+By combining TokenSHAP, PixelSHAP, VideoSHAP, and AgentSHAP, this library offers full-spectrum interpretability for modern AI systems—from language-only prompts to complex multimodal inputs to agentic tool-calling workflows.
