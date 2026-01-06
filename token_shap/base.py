@@ -612,30 +612,32 @@ class BaseSHAP(ABC):
         """Prepare arguments for model.generate()"""
         pass
 
-    def _generate_random_combinations(self, 
-                                    samples: List[Any], 
-                                    k: int, 
+    def _generate_random_combinations(self,
+                                    samples: List[Any],
+                                    k: int,
                                     exclude_combinations_set: Set[Tuple[int, ...]]) -> List[Tuple[List, Tuple[int, ...]]]:
         """
         Generate random combinations efficiently using binary representation
         """
         n = len(samples)
-        sampled_combinations_set = set()
+        sampled_indexes_set = set()  # Track only indexes (hashable) for deduplication
+        sampled_combinations = []  # Store actual combinations in a list
         max_attempts = k * 10  # Prevent infinite loops in case of duplicates
         attempts = 0
 
-        while len(sampled_combinations_set) < k and attempts < max_attempts:
+        while len(sampled_combinations) < k and attempts < max_attempts:
             attempts += 1
             rand_int = random.randint(1, 2 ** n - 2)
             bin_str = bin(rand_int)[2:].zfill(n)
             combination = [samples[i] for i in range(n) if bin_str[i] == '1']
             indexes = tuple([i + 1 for i in range(n) if bin_str[i] == '1'])
-            if indexes not in exclude_combinations_set and indexes not in sampled_combinations_set:
-                sampled_combinations_set.add((tuple(combination), indexes))
+            if indexes not in exclude_combinations_set and indexes not in sampled_indexes_set:
+                sampled_indexes_set.add(indexes)
+                sampled_combinations.append((combination, indexes))
 
-        if len(sampled_combinations_set) < k:
-            self._debug_print(f"Warning: Could only generate {len(sampled_combinations_set)} unique combinations out of requested {k}")
-        return list(sampled_combinations_set)
+        if len(sampled_combinations) < k:
+            self._debug_print(f"Warning: Could only generate {len(sampled_combinations)} unique combinations out of requested {k}")
+        return sampled_combinations
 
     def _get_result_per_combination(self, 
                                 content: Any, 
@@ -651,7 +653,7 @@ class BaseSHAP(ABC):
         """
         samples = self._get_samples(content)
         n = len(samples)
-        self._debug_print(f"Number of samples: {n}")
+
         if n > 1000:
             print("Warning: the number of samples is greater than 1000; execution will be slow.")
 
@@ -663,19 +665,17 @@ class BaseSHAP(ABC):
             indexes = tuple([j + 1 for j in range(n) if j != i])
             essential_combinations.append((combination, indexes))
             essential_combinations_set.add(indexes)
-        
+
         num_essential = len(essential_combinations)
-        self._debug_print(f"Number of essential combinations: {num_essential}")
         if max_combinations is not None and max_combinations < num_essential:
             print(f"Warning: max_combinations ({max_combinations}) is less than the number of essential combinations "
                   f"({num_essential}). Will use all essential combinations despite the limit.")
-            self._debug_print("No additional combinations will be added.")
             max_combinations = num_essential
+
         # Calculate how many additional combinations we can/should generate
         remaining_budget = float('inf')
         if max_combinations is not None:
             remaining_budget = max(0, max_combinations - num_essential)
-            self._debug_print(f"Remaining combinations budget after essentials: {remaining_budget}")
 
         # If using sampling ratio, calculate possible additional combinations without generating them
         if sampling_ratio < 1.0:
@@ -690,7 +690,6 @@ class BaseSHAP(ABC):
             num_additional = remaining_budget
 
         num_additional = int(num_additional)  # Ensure integer
-        self._debug_print(f"Number of additional combinations to sample: {num_additional}")
 
         # Generate additional random combinations if needed
         additional_combinations = []
@@ -698,23 +697,14 @@ class BaseSHAP(ABC):
             additional_combinations = self._generate_random_combinations(
                 samples, num_additional, essential_combinations_set
             )
-            self._debug_print(f"Number of sampled combinations: {len(additional_combinations)}")
-        else:
-            self._debug_print("No additional combinations to sample.")
 
         # Process all combinations
         all_combinations = essential_combinations + additional_combinations
-        self._debug_print(f"Total combinations to process: {len(all_combinations)}")
 
         responses = {}
         for idx, (combination, indexes) in enumerate(tqdm(all_combinations, desc="Processing combinations")):
-            self._debug_print(f"\nProcessing combination {idx + 1}/{len(all_combinations)}:")
-            self._debug_print(f"Combination: {combination}")
-            self._debug_print(f"Indexes: {indexes}")
-
             args = self._prepare_combination_args(combination, content)
             response = self.model.generate(**args)
-            self._debug_print(f"Received response for combination {idx + 1}")
 
             key = self._get_combination_key(combination, indexes)
             responses[key] = (response, indexes)

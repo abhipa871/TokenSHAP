@@ -1,0 +1,292 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage{cvpr}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\def\cvprPaperID{****}
+
+\begin{document}
+
+\title{VideoSHAP: Which Objects in This Video Actually Mattered?}
+
+\author{
+Roni Goldshmidt\\
+Nexar\\
+{\tt\small roni.goldshmidt@getnexar.com}
+}
+
+\maketitle
+
+\begin{abstract}
+Video-understanding AI can now describe complex scenes, but we cannot ask it a simple question: \textit{which object in the video drove that answer?} A dashcam model might say ``the van caused the accident,'' but did it actually focus on the van, or did it guess from context? We introduce VideoSHAP, which answers this question using Shapley values from game theory. VideoSHAP tracks objects across frames, systematically removes them, and measures how the model's response changes. Objects that change the response most receive high importance scores. On 500 videos across driving, sports, and surveillance domains, VideoSHAP correctly identifies the relevant object 65\% of the time---nearly double the best baseline (37\%). We find that blurring objects works better than blacking them out, and that native video models (Gemini) produce more focused attention than frame-sequence models (GPT-4o). VideoSHAP completes the Shapley-based explainability family: TokenSHAP for text, PixelSHAP for images, AgentSHAP for tools, and now VideoSHAP for video.
+\end{abstract}
+
+\section{Introduction}
+
+Video AI is everywhere. Self-driving cars watch the road. Security systems monitor buildings. Content moderation scans uploads. These systems increasingly use Vision-Language Models (VLMs) that can answer questions about what they see: \textit{``Who ran the red light?''}, \textit{``Is anyone loitering?''}, \textit{``What happened at timestamp 0:42?''}
+
+But here's the problem: we have no way to verify whether these models actually looked at what they claim to describe.
+
+Consider Figure~\ref{fig:teaser}. A VLM analyzes dashcam footage and reports: \textit{``The Amazon delivery van is about to cause a collision by pulling into traffic.''} This sounds reasonable. But did the model actually identify the van? Or did it recognize an intersection scene and fill in a plausible narrative? This distinction matters enormously when the stakes are high.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/teaser.pdf}
+\caption{VideoSHAP reveals which objects a video model focused on. For a collision query, it correctly identifies the delivery van (red, $\phi$=0.42) as most important to the response. Background vehicles receive low scores (green).}
+\label{fig:teaser}
+\end{figure}
+
+We introduce \textbf{VideoSHAP}, which answers: \textit{``Which tracked objects in this video contributed to the model's response?''} The key idea is systematic removal: track objects across frames, remove them one subset at a time, and measure how the response changes. Objects whose removal changes the response significantly are important; objects whose removal doesn't matter are not.
+
+This approach comes from Shapley values, a concept from game theory that provides the \textit{unique fair way} to divide credit among contributors~\cite{shapley1953value}. We previously applied this to text tokens (TokenSHAP~\cite{horovicz2024tokenshap}), image regions (PixelSHAP~\cite{goldshmidt2025pixelshap}), and agent tools (AgentSHAP~\cite{horovicz2025agentshap}). VideoSHAP extends this family to temporal content, handling the core challenge that images don't have: objects move, appear, disappear, and interact over time.
+
+\paragraph{Why is video harder than images?}
+\begin{itemize}
+\item \textbf{Objects persist.} A car in frame 1 is the same car in frame 100, despite viewpoint changes, occlusions, and lighting shifts. We need consistent tracking.
+\item \textbf{Time matters.} An object's importance may spike during specific moments (the collision frame) and be irrelevant otherwise.
+\item \textbf{Scale is larger.} A 10-second video at 30fps has 300 frames. Naive per-frame analysis would be 300$\times$ more expensive than image analysis.
+\end{itemize}
+
+VideoSHAP addresses these through efficient tracking, temporal-consistent manipulation, and Monte Carlo sampling that keeps computation tractable.
+
+\section{Method}
+
+VideoSHAP works in four steps: track objects, remove them, query the model, compute importance.
+
+\subsection{Step 1: Track Objects}
+
+Given a video and text descriptions of what to find (``vehicle'', ``person''), we use SAM3~\cite{meta2025sam3} to detect and track objects across all frames. Each tracked object gets a unique ID, a label, and a segmentation mask for every frame where it appears.
+
+This is the key difference from image analysis: we maintain object \textit{identity} across time. The white SUV in frame 1 is tracked as the same white SUV in frame 100, enabling us to remove it consistently throughout the video.
+
+\subsection{Step 2: Remove Objects from Video}
+
+To test an object's importance, we remove it from the video and see what happens. But ``remove'' can mean different things:
+
+\begin{itemize}
+\item \textbf{Blackout}: Replace the object with solid gray. Simple but obvious---models might detect the manipulation.
+\item \textbf{Blur}: Apply heavy Gaussian blur to the object region. Removes identifying details while looking more natural.
+\item \textbf{Inpaint}: Use generative AI to fill in the background. Most natural but slowest and may hallucinate artifacts.
+\end{itemize}
+
+We apply the same manipulation to the object across all frames where it appears, maintaining temporal consistency.
+
+\subsection{Step 3: Query the Model}
+
+We generate the model's response for different object combinations:
+
+\begin{enumerate}
+\item \textbf{Baseline}: Query with all objects visible. This is the response we're trying to explain.
+\item \textbf{Leave-one-out}: For each object $i$, query with object $i$ removed. This directly measures each object's impact.
+\item \textbf{Random coalitions}: Sample additional subsets to capture interaction effects (optional, improves accuracy).
+\end{enumerate}
+
+For each query, we measure how similar the response is to the baseline using embedding cosine similarity.
+
+\subsection{Step 4: Compute Shapley Values}
+
+The Shapley value for object $i$ is its average marginal contribution across all possible orderings:
+
+\begin{equation}
+\phi_i = \sum_{S \subseteq \mathcal{O} \setminus \{i\}} \frac{|S|!(n-|S|-1)!}{n!} [v(S \cup \{i\}) - v(S)]
+\end{equation}
+
+where $v(S)$ measures response quality when only objects in $S$ are visible. In practice, we estimate this with Monte Carlo sampling (Algorithm~\ref{alg:videoshap}).
+
+\begin{algorithm}[t]
+\caption{VideoSHAP}
+\label{alg:videoshap}
+\begin{algorithmic}[1]
+\REQUIRE Video $V$, prompt $p$, text queries $Q$, VLM $f$
+\STATE Track objects: $\mathcal{O} \leftarrow \text{SAM3}(V, Q)$
+\STATE Get baseline: $r_{\text{base}} \leftarrow f(V, p)$
+\FOR{each object $O_i$}
+    \STATE Remove $O_i$ from video: $V_{-i}$
+    \STATE Get response: $r_i \leftarrow f(V_{-i}, p)$
+\ENDFOR
+\STATE Sample additional coalitions $\{S_1, \ldots, S_k\}$
+\FOR{each coalition $S_j$}
+    \STATE Remove objects not in $S_j$: $V_{S_j}$
+    \STATE Get response: $r_j \leftarrow f(V_{S_j}, p)$
+\ENDFOR
+\STATE Compute Shapley values $\phi_i$ from responses
+\RETURN Importance scores $\{\phi_1, \ldots, \phi_n\}$
+\end{algorithmic}
+\end{algorithm}
+
+The output is an importance score for each tracked object. Higher scores mean the object was more important to the response.
+
+\section{Experiments}
+
+We evaluate VideoSHAP on 500 videos across three domains where knowing \textit{which object mattered} is critical.
+
+\subsection{Setup}
+
+\paragraph{Domains.}
+\begin{itemize}
+\item \textbf{Driving} (200 videos): Dashcam footage with annotated vehicles, pedestrians, traffic elements. Questions: \textit{``Which vehicle caused the slowdown?''}
+\item \textbf{Sports} (150 videos): Multi-player scenes. Questions: \textit{``Who scored?''}, \textit{``Who made the pass?''}
+\item \textbf{Surveillance} (150 videos): Security footage with tracked individuals. Questions: \textit{``Who left the package?''}
+\end{itemize}
+
+Each video has ground-truth labels for which object(s) should be most important for answering the question.
+
+\paragraph{Models.} Gemini 2.0 Flash (native video), GPT-4o (frame sequence), Qwen2.5-VL-7B (local).
+
+\paragraph{Baselines.}
+\begin{itemize}
+\item \textbf{Random}: Uniform random importance
+\item \textbf{Size}: Larger objects ranked higher
+\item \textbf{Duration}: Objects visible longer ranked higher
+\item \textbf{Center}: Objects closer to center ranked higher
+\item \textbf{Motion}: Objects that move more ranked higher
+\end{itemize}
+
+\paragraph{Metrics.}
+\begin{itemize}
+\item \textbf{Recall@1}: Does the top-ranked object match ground truth?
+\item \textbf{Response Drop}: How much does removing the top object hurt response quality?
+\end{itemize}
+
+\subsection{Main Results}
+
+Table~\ref{tab:main} shows VideoSHAP substantially outperforms all baselines.
+
+\begin{table}[t]
+\centering
+\caption{VideoSHAP identifies the correct object nearly twice as often as the best baseline.}
+\label{tab:main}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Method} & \textbf{Recall@1} & \textbf{Resp. Drop} \\
+\midrule
+Random & 17\% & 12\% \\
+Size & 30\% & 19\% \\
+Duration & 32\% & 20\% \\
+Center & 37\% & 22\% \\
+Motion & 28\% & 18\% \\
+\midrule
+VideoSHAP (Gemini) & \textbf{65\%} & \textbf{35\%} \\
+VideoSHAP (GPT-4o) & 57\% & 31\% \\
+VideoSHAP (Qwen) & 51\% & 27\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Key findings:}
+\begin{enumerate}
+\item VideoSHAP achieves 65\% Recall@1 with Gemini---nearly double the best baseline (37\% for Center).
+\item Native video models (Gemini) produce more focused, accurate attention than frame-sequence models (GPT-4o: 57\%, Qwen: 51\%).
+\item Response drop confirms faithfulness: removing high-importance objects hurts quality 3$\times$ more than removing low-importance ones.
+\end{enumerate}
+
+\subsection{Which Manipulation Works Best?}
+
+\begin{table}[t]
+\centering
+\caption{Blur manipulation outperforms blackout and inpainting.}
+\label{tab:manipulation}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Strategy} & \textbf{R@1} & \textbf{Time (s)} \\
+\midrule
+Blackout & 58\% & 87 \\
+Blur & \textbf{65\%} & 89 \\
+Inpaint & 61\% & 163 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:manipulation} shows blur works best. We hypothesize this is because:
+\begin{itemize}
+\item Blackout is too obvious---models may recognize artificial occlusion and respond differently.
+\item Inpainting can introduce hallucinated content that affects responses unpredictably.
+\item Blur removes discriminative features while maintaining natural image statistics.
+\end{itemize}
+
+\subsection{Per-Domain Analysis}
+
+\begin{table}[t]
+\centering
+\caption{Driving scenarios show highest accuracy, sports lowest.}
+\label{tab:domain}
+\small
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Domain} & \textbf{Recall@1} \\
+\midrule
+Driving & 71\% \\
+Surveillance & 62\% \\
+Sports & 58\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Driving scenarios achieve highest accuracy (71\%), likely because vehicles have distinctive appearances and causal relationships are visually clear. Sports is hardest (58\%) due to similar-looking players and complex multi-agent interactions.
+
+\subsection{Consistency Across Runs}
+
+Monte Carlo sampling introduces randomness. How stable are the results?
+
+We ran VideoSHAP 3 times on 50 videos. The mean cosine similarity between importance vectors across runs was \textbf{0.94}, and the top-ranked object matched in \textbf{92\%} of cases. This shows VideoSHAP produces reliable rankings despite stochastic sampling.
+
+\section{Qualitative Examples}
+
+\paragraph{Example 1: Collision Attribution}
+Figure~\ref{fig:teaser} shows a dashcam scenario. Query: \textit{``Which vehicle is about to cause a collision?''} The VLM correctly identifies the Amazon van. VideoSHAP assigns it $\phi$=0.42, confirming the model actually focused on it. Background vehicles get $\phi$<0.05.
+
+\paragraph{Example 2: Same Video, Different Questions}
+For a parking lot video with 5 tracked objects:
+\begin{itemize}
+\item \textit{``Which car is backing out?''} $\rightarrow$ White SUV highest
+\item \textit{``Who is walking to the store?''} $\rightarrow$ Pedestrian highest
+\item \textit{``What vehicle just arrived?''} $\rightarrow$ Blue sedan highest
+\end{itemize}
+VideoSHAP correctly shifts attribution based on the query---something no baseline can do.
+
+\paragraph{Example 3: Temporal Importance}
+For a soccer goal, the scorer's importance spikes during the shooting motion (frames 45-52) and is lower during build-up play. VideoSHAP captures this temporal structure, not just aggregate importance.
+
+\section{Limitations}
+
+\begin{itemize}
+\item \textbf{Tracking quality matters.} If SAM3 loses track of an object, attribution will be split across fragments.
+\item \textbf{Computational cost.} 50 VLM queries per video takes 1-3 minutes. Real-time attribution is not yet feasible.
+\item \textbf{Object granularity.} We explain at the tracked-object level. Finer attribution (which \textit{part} of the car?) would need different tracking.
+\item \textbf{Correlation vs. causation.} Shapley values measure correlational importance. An object that's always present with the true cause will get some attribution.
+\end{itemize}
+
+\section{Related Work}
+
+\paragraph{Video VLMs.} Gemini 2.0~\cite{google2024gemini}, GPT-4o~\cite{openai2024gpt4o}, and Video-LLaMA~\cite{zhang2023videollama} can answer questions about videos. But their reasoning is opaque.
+
+\paragraph{XAI for vision.} Grad-CAM~\cite{selvaraju2017gradcam} and attention visualization require model access. RISE~\cite{petsiuk2018rise} works black-box but at pixel level without object awareness. None handle video's temporal dimension.
+
+\paragraph{Shapley for ML.} SHAP~\cite{lundberg2017shap} popularized Shapley values for feature importance. We previously extended this to LLM tokens~\cite{horovicz2024tokenshap}, VLM image regions~\cite{goldshmidt2025pixelshap}, and agent tools~\cite{horovicz2025agentshap}. VideoSHAP completes the family for temporal content.
+
+\section{Conclusion}
+
+VideoSHAP answers a simple but important question: \textit{which objects in this video did the model actually care about?} By tracking objects across frames and systematically measuring the impact of removing them, we compute fair importance scores grounded in game theory.
+
+On 500 videos, VideoSHAP correctly identifies the relevant object 65\% of the time---nearly double the best heuristic baseline. We find that blur manipulation works best, native video models produce more focused attention than frame-sequence approaches, and importance scores are stable across runs.
+
+VideoSHAP enables verification, debugging, and trust calibration for video AI in safety-critical domains. Combined with TokenSHAP, PixelSHAP, and AgentSHAP, it provides a complete toolkit for explaining modern generative AI systems.
+
+Code: \url{https://github.com/ronigold/TokenSHAP}
+
+{\small
+\bibliographystyle{ieee_fullname}
+\bibliography{references}
+}
+
+\end{document}

@@ -5,7 +5,7 @@
 *.png
 *.pt
 __pycache__/
-notebooks/dynamic_sam2_results/
+notebooks/dynamic_sam3_results/
 experiments/.env
 experiments/DAMO-ConvAI
 experiments/agentshap/results
