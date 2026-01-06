@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/genai_shap.png" alt="GenAI-SHAP: Unified Explainability Framework" width="700"/>
+  <img src="images/genai_shap.png" alt="GenAI-SHAP: Unified Explainability Framework" width="600"/>
 </p>
 
 <h1 align="center">GenAI-SHAP</h1>
@@ -39,7 +39,7 @@ These guarantees make Shapley-based explanations theoretically grounded and prac
 ## 🔍 TokenSHAP
 
 <p align="center">
-  <img src="images/tokenshap_logo.png" alt="TokenSHAP Logo" width="120"/>
+  <img src="images/tokenshap_logo.png" alt="TokenSHAP Logo" width="80"/>
 </p>
 
 TokenSHAP provides fine-grained interpretability for language models using Monte Carlo Shapley value estimation over input tokens.
@@ -81,7 +81,7 @@ See [`notebooks/TokenShap Examples.ipynb`](notebooks/TokenShap%20Examples.ipynb)
 ## 🖼️ PixelSHAP
 
 <p align="center">
-  <img src="images/pixelshap_logo.png" alt="PixelSHAP Logo" width="120"/>
+  <img src="images/pixelshap_logo.png" alt="PixelSHAP Logo" width="80"/>
 </p>
 
 PixelSHAP is an object-level interpretability framework for **text-generating vision-language models**. It attributes Shapley values to visual objects based on their contribution to the model's response.
@@ -134,7 +134,7 @@ See [`notebooks/PixelSHAP Examples.ipynb`](notebooks/PixelSHAP%20Examples.ipynb)
 ## 🎬 VideoSHAP
 
 <p align="center">
-  <img src="images/videoshap_logo.png" alt="VideoSHAP Logo" width="120"/>
+  <img src="images/videoshap_logo.png" alt="VideoSHAP Logo" width="80"/>
 </p>
 
 VideoSHAP extends the framework to video content, tracking objects across frames and computing importance scores that reflect each object's contribution to the VLM's temporal reasoning.
@@ -148,16 +148,15 @@ VideoSHAP extends the framework to video content, tracking objects across frames
 
 ### Example Results
 
-<table>
-<tr>
-<td align="center"><b>Birthday Party Analysis</b></td>
-<td align="center"><b>Cats Interaction</b></td>
-</tr>
-<tr>
-<td><img src="images/birthday.gif" alt="Birthday party video analysis" width="400"/></td>
-<td><img src="images/cats.gif" alt="Cats video analysis" width="400"/></td>
-</tr>
-</table>
+<p align="center">
+  <b>Birthday Party Analysis</b><br/>
+  <img src="images/birthday.gif" alt="Birthday party video analysis" width="300"/>
+</p>
+
+<p align="center">
+  <b>Cats Interaction</b><br/>
+  <img src="images/cats.gif" alt="Cats video analysis" width="500"/>
+</p>
 
 <table>
 <tr>
@@ -216,7 +215,7 @@ See [`notebooks/VideoSHAP Examples.ipynb`](notebooks/VideoSHAP%20Examples.ipynb)
 ## 🤖 AgentSHAP
 
 <p align="center">
-  <img src="images/agentshap_logo.png" alt="AgentSHAP Logo" width="120"/>
+  <img src="images/agentshap_logo.png" alt="AgentSHAP Logo" width="80"/>
 </p>
 
 AgentSHAP is an **explainability framework for AI agents**. It answers the question: *"Which tools did the agent rely on to produce its response?"* by computing Shapley values for each tool in the agent's toolkit.
