@@ -9,3 +9,6 @@ notebooks/dynamic_sam3_results/
 experiments/.env
 experiments/DAMO-ConvAI
 experiments/agentshap/results
+
+# Virtual environment
+.venv/
