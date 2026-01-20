@@ -22,11 +22,11 @@ class Splitter:
         raise NotImplementedError
 class StringMatchSplitter(Splitter):
     """Split text by regular expression matches only"""
-    def __init__(self, match_string: str):
+    def __init__(self, match_string: str, group: int):
         self.match_string = match_string
-
-    def split(self, text: str, group:int) -> List[str]:
-        return [m.group(group) for m in re.finditer(self.match_string, text.strip())]
+        self.group = group
+    def split(self, text: str) -> List[str]:
+        return [m.group(self.group) for m in re.finditer(self.match_string, text.strip())]
 
 
     def join(self, tokens: List[str]) -> str:
