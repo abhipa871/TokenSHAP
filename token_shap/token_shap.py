@@ -20,7 +20,18 @@ class Splitter:
         
     def join(self, tokens: List[str]) -> str:
         raise NotImplementedError
-clasdsd
+class StringMatchSplitter(Splitter):
+    """Split text by regular expression matches only"""
+    def __init__(self, match_string: str):
+        self.match_string = match_string
+
+    def split(self, text: str, group:int) -> List[str]:
+        return [m.group(group) for m in re.finditer(self.match_string, text.strip())]
+
+
+    def join(self, tokens: List[str]) -> str:
+        return self.match_string.join(tokens)
+
 class StringSplitter(Splitter):
     """Split text by pattern (default: space)"""
     def __init__(self, split_pattern: str = ' '):
